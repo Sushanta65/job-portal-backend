@@ -1,12 +1,17 @@
 const express = require("express");
 const cors = require("cors");
 const jwt = require("jsonwebtoken");
+const cookieParser = require('cookie-parser')
 require("dotenv").config();
 
 const app = express();
 const port = process.env.PORT || 5200;
 app.use(express.json());
-app.use(cors());
+app.use(cors({
+  origin: 'http://localhost:5173',
+  credentials: true
+}));
+app.use(cookieParser())
 
 const { MongoClient, ServerApiVersion } = require("mongodb");
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PWD}@cluster0.uksn0.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
@@ -25,9 +30,14 @@ async function run() {
     //Auth Releated Apis
     app.post("/jwt", (req, res) => {
       const user = req.body;
-      const token = jwt.sign(user, "secret", { expiresIn: "1hr" });
+      const token = jwt.sign(user, process.env.JWT_SECRET, { expiresIn: "1hr" });
       console.log(user.email)
-      res.send(token);
+      res
+      .cookie('token', token, {
+        httpOnly: true,
+
+      })
+      .send({success: true});
     });
 
     await client.connect();
