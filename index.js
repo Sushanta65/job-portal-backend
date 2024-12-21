@@ -1,17 +1,19 @@
 const express = require("express");
 const cors = require("cors");
 const jwt = require("jsonwebtoken");
-const cookieParser = require('cookie-parser')
+const cookieParser = require("cookie-parser");
 require("dotenv").config();
 
 const app = express();
 const port = process.env.PORT || 5200;
 app.use(express.json());
-app.use(cors({
-  origin: 'http://localhost:5173',
-  credentials: true
-}));
-app.use(cookieParser())
+app.use(
+  cors({
+    origin: "http://localhost:5173",
+    credentials: true,
+  })
+);
+app.use(cookieParser()); //Must use for jwt
 
 const { MongoClient, ServerApiVersion } = require("mongodb");
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PWD}@cluster0.uksn0.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
@@ -26,25 +28,32 @@ const client = new MongoClient(uri, {
 
 async function run() {
   try {
-
     //Auth Releated Apis
+
     app.post("/jwt", (req, res) => {
       const user = req.body;
-      const token = jwt.sign(user, process.env.JWT_SECRET, { expiresIn: "1hr" });
-      console.log(user.email)
+      const token = jwt.sign(user, process.env.JWT_SECRET, {
+        expiresIn: "1hr",
+      });
       res
-      .cookie('token', token, {
-        httpOnly: true,
-
-      })
-      .send({success: true});
+        .cookie("token", token, {
+          httpOnly: true,
+          secure: false,
+        })
+        .send({ success: true });
     });
+
+    app.post('/logout', (req, res) => {
+      res.clearCookie('token', {
+        httpOnly: true,
+        secure: false
+      })
+      .send({logOutSuccess: true})
+    })
 
     await client.connect();
     await client.db("admin").command({ ping: 1 });
-    console.log(
-      "You successfully connected to MongoDB!"
-    );
+    console.log("You successfully connected to MongoDB!");
   } finally {
     await client.close();
   }
